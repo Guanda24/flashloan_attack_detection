@@ -5,7 +5,7 @@ import os.path
 from time import sleep
 
 yourapikey_on_subgraph=''
-client = GraphQLClient('https://gateway-arbitrum.network.thegraph.com/api/{yourapikey_on_subgraph}/subgraphs/id/EYCKATKGBKLWvSfwvBjzfCBmGwYNdVkduYXVivCsLRFu')
+client = GraphQLClient(f'https://gateway-arbitrum.network.thegraph.com/api/{yourapikey_on_subgraph}/subgraphs/id/EYCKATKGBKLWvSfwvBjzfCBmGwYNdVkduYXVivCsLRFu')
 
 #new 2024-09-10
 query = '''
