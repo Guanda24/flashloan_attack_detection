@@ -15,7 +15,7 @@ w3_current_block = w3.eth.block_number
 step = 50000
 Balancer_v2_flashloan_logs_simplified = []
 
-timestamp_df = pd.read_csv('/local/scratch/exported/MP_Defi_txs_TY_23/timestamp_20081108.csv')
+timestamp_df = pd.read_csv('/local/scratch/exported/MP_Defi_txs_TY_23/timestamp_18012051.csv')
 timestamp_df['real_life_time'] = pd.to_datetime(timestamp_df['timestamp'], unit='s')
 timestamp_df['date'] = timestamp_df['real_life_time'].dt.date
 timestamp_df = timestamp_df[Balancer_v2_start_block:]

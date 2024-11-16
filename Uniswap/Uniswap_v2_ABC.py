@@ -18,7 +18,7 @@ Uniswap_v2_price_cannot_get = manager.list()
 
 Uniswap_v2_flashloan_unique = pd.read_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Uniswap_v2_flashloan_unique.csv')
 token_price = pd.read_csv('/home/user/gzhao/Thesis/Price/token_price.csv')
-Uniswap_v2_sync = vaex.open('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/new_uni-v2-syncs_right_2406.hdf5')
+Uniswap_v2_sync = vaex.open('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/uniswap-v2-sync_drop_duplicates.hdf5')
 
 try:
     Uniswap_v2_ABC_error_tx_cant_be_solved = manager.list(pd.read_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Uniswap_v2_ABC_error_tx_cant_be_solved.csv', header=None)[0].tolist())
@@ -49,9 +49,9 @@ def get_price_change_ratio(tx_hash):
         reserve1_after_swap = Decimal('NaN')
         price_after_swap = Decimal('NaN')
         price_change_ratio = Decimal('NaN')
-        sync_df = Uniswap_v2_sync[Uniswap_v2_sync['token_contract_address'] == address_list[i]]
+        sync_df = Uniswap_v2_sync[Uniswap_v2_sync['pair_contract_address'] == address_list[i]]
         if sync_df:
-            sync_df = sync_df.sort(by=['block_number', 'transactionIndex', 'log_index'], ascending=[True, True, True]).to_pandas_df()
+            sync_df = sync_df.sort(by=['block_number', 'tx_index', 'log_index'], ascending=[True, True, True]).to_pandas_df()
             if not sync_df[(sync_df['tx_hash'] == tx_hash ) & (sync_df['log_index'] == logIndex_list[i] - 1)].empty:
                 # reserve after swap
                 index = sync_df[(sync_df['tx_hash'] == tx_hash ) & (sync_df['log_index'] == logIndex_list[i] - 1)].index[0]

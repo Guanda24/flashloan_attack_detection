@@ -10,12 +10,12 @@ Uniswap_v3_abi = '[{"inputs":[],"stateMutability":"nonpayable","type":"construct
 Uniswap_v3_smart_contract=w3.eth.contract(address=Uniswap_v3_contract_factory,abi=Uniswap_v3_abi)
  
 Uniswap_v3_start_block = 12369621
-w3_current_block = w3.eth.block_number
+end_block = 21089068
 step = 50000
 Uniswap_v3_PoolCreated_logs = []
 Uniswap_v3_PoolCreated_logs_simplified = []
 
-for i in range(Uniswap_v3_start_block, w3_current_block + 1, step):
+for i in range(Uniswap_v3_start_block, end_block + 1, step):
     Uniswap_v3_PoolCreated_logs = Uniswap_v3_smart_contract.events.PoolCreated().get_logs(fromBlock=i,toBlock=i+step-1)
     for j in range(len(Uniswap_v3_PoolCreated_logs)):
         info = {

@@ -344,9 +344,9 @@ def analyze_transaction(tx_hash):
     internal_txs = internal_txs[pd.notna(internal_txs['action.value'])]
     
     # 计算地址的资金变动
-    internal_txs['action.value']=internal_txs['action.value'].apply(hex_to_int)
+    internal_txs['action.value'] = internal_txs['action.value'].apply(hex_to_int)
     internal_txs['action.value'] = internal_txs['action.value'].apply(convert_to_decimal)
-    internal_txs['action.value']=internal_txs['action.value'].apply(keep_eth_decimal)
+    internal_txs['action.value'] = internal_txs['action.value'].apply(keep_eth_decimal)
 
     internal_txs.drop(internal_txs[internal_txs['action.callType'] == 'delegatecall'].index, inplace=True)
 

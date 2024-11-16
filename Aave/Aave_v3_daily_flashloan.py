@@ -12,16 +12,17 @@ Aave_v3_abi = '[{"inputs":[{"internalType":"contract IPoolAddressesProvider","na
 Aave_v3_smart_contract=w3.eth.contract(address=Aave_v3_contract_address,abi=Aave_v3_abi)
  
 Aave_v3_start_block = 16291127
-w3_current_block = w3.eth.block_number
+end_block = 21089068
+
 step = 50000
 Aave_v3_flashloan_logs_simplified = []
 
-timestamp_df = pd.read_csv('/local/scratch/exported/MP_Defi_txs_TY_23/timestamp_20081108.csv')
+timestamp_df = pd.read_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/timestamp_21145534.csv')
 timestamp_df['real_life_time'] = pd.to_datetime(timestamp_df['timestamp'], unit='s')
 timestamp_df['date'] = timestamp_df['real_life_time'].dt.date
 timestamp_df = timestamp_df[Aave_v3_start_block:]
 
-for i in tqdm(range(Aave_v3_start_block, w3_current_block + 1, step)):
+for i in tqdm(range(Aave_v3_start_block, end_block + 1, step)):
     Aave_v3_flashloan_logs = Aave_v3_smart_contract.events.FlashLoan().get_logs(fromBlock=i,toBlock=i+step-1)
     for j in range(len(Aave_v3_flashloan_logs)):
         info = {

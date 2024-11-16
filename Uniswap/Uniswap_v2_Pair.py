@@ -8,13 +8,13 @@ Uniswap_v2_abi = '[{"inputs":[{"internalType":"address","name":"_feeToSetter","t
 Uniswap_v2_smart_contract=w3.eth.contract(address=Uniswap_v2_contract_factory,abi=Uniswap_v2_abi)
  
 Uniswap_v2_start_block = 10000835
-w3_current_block = w3.eth.block_number
+end_block = 21089068
 step = 50000
 Uniswap_v2_PairCreated_logs = []
 Uniswap_v2_PairCreated_logs_simplified = []
 Uniswap_v2_Pair = []
 
-for i in range(Uniswap_v2_start_block, w3_current_block + 1, step):
+for i in range(Uniswap_v2_start_block, end_block + 1, step):
     Uniswap_v2_PairCreated_logs = Uniswap_v2_smart_contract.events.PairCreated().get_logs(fromBlock=i,toBlock=i+step-1)
     for j in range(len(Uniswap_v2_PairCreated_logs)):
         info = {

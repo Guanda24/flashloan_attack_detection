@@ -56,11 +56,11 @@ def collect_batch_data(token_id,data_name,query,start_time,end_time,save_path):
                     break
 
 from tqdm import tqdm
-#read your token list
+#read token list
 df=pd.read_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Unique_token.csv')
 token_address=df['address'].tolist()
 
-save_path = '/home/user/gzhao/Thesis/Price/' #change to your path
+save_path = '/home/user/gzhao/Thesis/Price/'
 start_time=1588610042
 end_time=1718259995
 for token_id in tqdm(token_address):
