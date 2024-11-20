@@ -1,0 +1,12 @@
+Metric,Value
+True Negatives,56304.0
+False Positives,48.0
+False Negatives,298.0
+True Positives,597.0
+AUC-ROC,0.9885320999051452
+Precision (0),0.9947351683686089
+Recall (0),0.9991482112436116
+F1-Score (0),0.9969368061334702
+Precision (1),0.9255813953488372
+Recall (1),0.6670391061452514
+F1-Score (1),0.7753246753246753

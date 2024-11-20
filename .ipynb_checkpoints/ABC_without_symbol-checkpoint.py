@@ -331,7 +331,7 @@ def convert_to_decimal(value):
 
 def analyze_transaction(tx_hash):
     # 设置与节点的连接
-    w3 = HTTPProvider('http://localhost:8547', request_kwargs={'timeout': 80})
+    w3 = HTTPProvider('http://localhost:8545', request_kwargs={'timeout': 60})
 
     # 获取交易追踪数据
     result = w3.make_request('trace_replayTransaction', [tx_hash, ['trace']])
@@ -344,9 +344,9 @@ def analyze_transaction(tx_hash):
     internal_txs = internal_txs[pd.notna(internal_txs['action.value'])]
     
     # 计算地址的资金变动
-    internal_txs['action.value'] = internal_txs['action.value'].apply(hex_to_int)
+    internal_txs['action.value']=internal_txs['action.value'].apply(hex_to_int)
     internal_txs['action.value'] = internal_txs['action.value'].apply(convert_to_decimal)
-    internal_txs['action.value'] = internal_txs['action.value'].apply(keep_eth_decimal)
+    internal_txs['action.value']=internal_txs['action.value'].apply(keep_eth_decimal)
 
     internal_txs.drop(internal_txs[internal_txs['action.callType'] == 'delegatecall'].index, inplace=True)
 

@@ -14,12 +14,12 @@ getcontext().prec = 50
 manager = Manager()
 Aave_v3_ABC = manager.list()
 Aave_v3_ABC_error_index = manager.list()
-Aave_price_cannot_get = manager.list()
+Aave_v3_price_cannot_get = manager.list()
 
 Aave_v3_flashloan_unique = pd.read_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Aave_v3_flashloan_unique.csv')
-token_price = pd.read_csv('/home/user/gzhao/Thesis/Price/token_price.csv')
+token_price = pd.read_csv('/home/user/gzhao/Thesis/Price/token_price_filtered.csv')
 Uniswap_v2_sync = vaex.open('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/uniswap-v2-sync_drop_duplicates.hdf5')
-Uniswap_v3_swap = vaex.open('/local/scratch/exported/MP_Defi_txs_TY_23/uniswap-v3-swap_drop_duplicate.hdf5')
+Uniswap_v3_swap = vaex.open('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/uniswap-v3-swap-drop-duplicates.hdf5')
 
 try:
     Aave_v3_ABC_error_tx_cant_be_solved = manager.list(pd.read_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Aave_v3_ABC_error_tx_cant_be_solved.csv', header=None)[0].tolist())
@@ -95,7 +95,7 @@ def get_price_change_ratio(tx_hash):
         reserve1_after_swap = Decimal('NaN')
         price_after_swap = Decimal('NaN')
         price_change_ratio = Decimal('NaN')
-        swap_df = Uniswap_v3_swap[Uniswap_v3_swap['pool_contract_address'] == Uniswap_v3_address_list[i]]
+        swap_df = Uniswap_v3_swap[Uniswap_v3_swap['pair_contract_address'] == Uniswap_v3_address_list[i]]
         if swap_df:
             swap_df = swap_df.sort(by=['block_number'], ascending=[True]).to_pandas_df()
             # reserve after swap
@@ -105,8 +105,8 @@ def get_price_change_ratio(tx_hash):
             reserve0_after_swap = Decimal(round(liquidity / price_after_swap.sqrt()))
             reserve1_after_swap = Decimal(round(liquidity * price_after_swap.sqrt()))    
             # reserve before swap 
-            if not swap_df[(swap_df['pool_contract_address'] == Uniswap_v3_address_list[i]) & (swap_df['tx_hash'] == tx_hash) & (swap_df['log_index'] == Uniswap_v3_logIndex_list[i])].empty:
-                index = swap_df[(swap_df['pool_contract_address'] == Uniswap_v3_address_list[i]) & (swap_df['tx_hash'] == tx_hash) & (swap_df['log_index'] == Uniswap_v3_logIndex_list[i])].index[0]
+            if not swap_df[(swap_df['pair_contract_address'] == Uniswap_v3_address_list[i]) & (swap_df['tx_hash'] == tx_hash) & (swap_df['log_index'] == Uniswap_v3_logIndex_list[i])].empty:
+                index = swap_df[(swap_df['pair_contract_address'] == Uniswap_v3_address_list[i]) & (swap_df['tx_hash'] == tx_hash) & (swap_df['log_index'] == Uniswap_v3_logIndex_list[i])].index[0]
                 if index != 0 :
                     index = index - 1
                     liquidity = Decimal(swap_df['liquidity'][index])
@@ -156,8 +156,8 @@ def get_ABC_in_usd(tx_hash, from_address, to_address, ABC_simplified, date):
             price = Decimal(token_price['priceUSD'][index])
         else:
             price = Decimal('NaN')
-            if token_address not in Aave_price_cannot_get:
-                Aave_price_cannot_get.append(token_address)
+            if token_address not in Aave_v3_price_cannot_get:
+                Aave_v3_price_cannot_get.append(token_address)
 
         price_list.append({'token_address': token_address, 'price': price})
         
@@ -200,8 +200,8 @@ def get_flashloan_in_usd(flashloan_token_address, flashloan_amount, date):
         price = Decimal(token_price['priceUSD'][index])
     else:
         price = Decimal('NaN')
-        if flashloan_token_address not in Aave_price_cannot_get:
-            Aave_price_cannot_get.append(flashloan_token_address)
+        if flashloan_token_address not in Aave_v3_price_cannot_get:
+            Aave_v3_price_cannot_get.append(flashloan_token_address)
     
     flashloan_in_usd = price * Decimal(flashloan_amount)
     return flashloan_in_usd
@@ -210,7 +210,7 @@ def process_transaction_with_default_abi(i):
     tx_hash = Aave_v3_flashloan_unique['tx_hash'][i]
     # Pass current iteration if current tx_hash is marked as error:
     if tx_hash in Aave_v3_ABC_error_tx_cant_be_solved:
-        pass
+        return
     
     try:    
         block_number = Aave_v3_flashloan_unique['block_number'][i]
@@ -335,14 +335,14 @@ if Aave_v3_ABC_error_index:
 print('initialise')
 Aave_v3_ABC = list(Aave_v3_ABC)
 Aave_v3_ABC_error_tx_cant_be_solved = list(Aave_v3_ABC_error_tx_cant_be_solved)
-Aave_price_cannot_get = list(Aave_price_cannot_get)
+Aave_v3_price_cannot_get = list(Aave_v3_price_cannot_get)
 
 print('to df')
 Aave_v3_ABC_df = pd.DataFrame(Aave_v3_ABC)
 Aave_v3_ABC_error_tx_cant_be_solved_df = pd.DataFrame(Aave_v3_ABC_error_tx_cant_be_solved)
-Aave_price_cannot_get_df = pd.DataFrame(Aave_price_cannot_get)
+Aave_v3_price_cannot_get_df = pd.DataFrame(Aave_v3_price_cannot_get)
 
 print('to_csv')
 Aave_v3_ABC_df.to_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Aave_v3_ABC.csv', index=False)
 Aave_v3_ABC_error_tx_cant_be_solved_df.to_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Aave_v3_ABC_error_tx_cant_be_solved.csv', index=False, header = False)
-Aave_price_cannot_get_df.to_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Aave_price_cannot_get.csv', index=False, header = False)
+Aave_v3_price_cannot_get_df.to_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Aave_v3_price_cannot_get.csv', index=False, header = False)

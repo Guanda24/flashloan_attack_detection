@@ -50,8 +50,8 @@ def collect_batch_data(token_id,data_name,query,start_time,end_time,save_path):
             else:
                 new_start_time=liq_calls[-1]['date']
                 new_query = new_query.replace(f'{start_time}',str(new_start_time))
-                print(new_start_time)
-                print(len(liq_calls))
+                # print(new_start_time)
+                # print(len(liq_calls))
                 if len(liq_calls) < 1000:
                     break
 
@@ -62,7 +62,7 @@ token_address=df['address'].tolist()
 
 save_path = '/home/user/gzhao/Thesis/Price/'
 start_time=1588610042
-end_time=1718259995
+end_time=1730419200
 for token_id in tqdm(token_address):
     collect_batch_data(token_id,'tokenDayDatas',query, start_time, end_time, save_path)
     sleep(2)

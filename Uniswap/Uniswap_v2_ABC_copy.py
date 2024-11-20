@@ -17,6 +17,8 @@ Uniswap_v2_ABC_error_index = manager.list()
 Uniswap_v2_price_cannot_get = manager.list()
 
 Uniswap_v2_flashloan_unique = pd.read_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Uniswap_v2_flashloan_unique.csv')
+Uniswap_v2_ABC_df = pd.read_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Uniswap_v2_ABC.csv')
+
 token_price = pd.read_csv('/home/user/gzhao/Thesis/Price/token_price_filtered.csv')
 Uniswap_v2_sync = vaex.open('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/uniswap-v2-sync_drop_duplicates.hdf5')
 
@@ -155,12 +157,15 @@ def get_flashloan_in_usd(flashloan_token_address, flashloan_amount, date):
     
     flashloan_in_usd = price * Decimal(flashloan_amount)
     return flashloan_in_usd
-    
+
 
 def process_transaction_with_default_abi(i):
     tx_hash = Uniswap_v2_flashloan_unique['tx_hash'][i]
     # Pass current iteration if current tx_hash is marked as error:
     if tx_hash in Uniswap_v2_ABC_error_tx_cant_be_solved:
+        return
+
+    if tx_hash in Uniswap_v2_ABC_df['tx_hash'].values:
         return
     
     try:    
@@ -216,6 +221,11 @@ def process_transaction_with_default_abi(i):
         
 def process_error_transaction(i):
     try:
+
+        # 检查 tx_hash 是否已经存在于 Uniswap_v2_ABC_df 中
+        if tx_hash in Uniswap_v2_ABC_df['tx_hash'].values:
+            return  # 如果已经存在，直接跳过
+        
         error_index = Uniswap_v2_ABC_error_index[i]
         tx_hash = Uniswap_v2_flashloan_unique['tx_hash'][error_index]   
         
@@ -293,6 +303,6 @@ Uniswap_v2_ABC_error_tx_cant_be_solved_df = pd.DataFrame(Uniswap_v2_ABC_error_tx
 Uniswap_v2_price_cannot_get_df = pd.DataFrame(Uniswap_v2_price_cannot_get)
 
 print('to_csv')
-Uniswap_v2_ABC_df.to_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Uniswap_v2_ABC.csv', index=False)
+Uniswap_v2_ABC_df.to_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Uniswap_v2_ABC_concat.csv', index=False)
 Uniswap_v2_ABC_error_tx_cant_be_solved_df.to_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Uniswap_v2_ABC_error_tx_cant_be_solved.csv', index=False, header = False)
 Uniswap_v2_price_cannot_get_df.to_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Uniswap_v2_price_cannot_get.csv', index=False, header = False)

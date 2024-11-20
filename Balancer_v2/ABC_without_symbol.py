@@ -331,7 +331,7 @@ def convert_to_decimal(value):
 
 def analyze_transaction(tx_hash):
     # 设置与节点的连接
-    w3 = HTTPProvider('http://localhost:8547', request_kwargs={'timeout': 60})
+    w3 = HTTPProvider('http://localhost:8547', request_kwargs={'timeout': 80})
 
     # 获取交易追踪数据
     result = w3.make_request('trace_replayTransaction', [tx_hash, ['trace']])
