@@ -22,6 +22,11 @@ This section provides an overview of various project files, each serving a speci
 - **Usage:** Remove abnormal token prices
 - **Data Output:** token_price_filtered.csv
 
+## ABC_without_symbol.py
+
+- **File Name:** ABC_without_symbol.py
+- **Usage:** Calculate the account balance change of both internal and external transactions without returning the symbols of tokens
+
 ### Supervised_learning.ipynb
 
 - **File Name:** Supervised_learning.ipynb
@@ -34,7 +39,6 @@ This section provides an overview of various project files, each serving a speci
 
 - **File Name:** ABC_analysis.py
 - **Usage:** Account Balance Change Analyszer
-- **Data Output:** None
 
 ## Uniswap_v2
 
@@ -165,29 +169,3 @@ This section provides an overview of various project files, each serving a speci
 - **File Name:** Aave_v3_ABC_multiprocessing.py
 - **Usage:** Get the data for identifying Balancer V2 flashloan attacks by using multiprocessing
 - **Data Output:** Balancer_v2_ABC.csv, Balancer_v2_ABC_error_tx_cant_be_solved.csv
-
-
-
-
-
-
-## ABC_without_symbol.py
-
-- **File Name:** ABC_without_symbol.py
-- **Usage:** Calculate the account balance change of both internal and external transactions without returning the symbols of tokens
-
-## Account_Balance.py
-
-- **File Name:** Account_Balance.py
-- **Usage:** Calculate the account balance change of only the external transactions and return the symbols of tokens
-
-## Account_Balance_Full.py
-
-- **File Name:** Account_Balance_Full.py
-- **Usage:** Calculate the account balance change of both internal and external transactions and return the symbols of tokens
-
-## find_implement_of_proxy.py
-
-- **File Name:** find_implement_of_proxy.py
-- **Usage:** Find the actual address of the proxy contract
-
