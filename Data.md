@@ -31,13 +31,6 @@ This section provides a comprehensive overview of the project's data files. Each
 - **File Type:** pd.DataFrame
 - **Column Names:** tx_hash, date, block_number, transactionIndex, log_index, from_address, to_address, account_balance_change, ABC_in_usd, price_list, highest_profit_address, highest_profit_in_usd, sync_before, sync_after, sync_price_ratio, highest_sync_price_ratio, path_length, num_swap_events, flashloan_in_usd
 
-### tokenDayDatas_1.csv
-
-- **File Name:** tokenDayDatas_1.csv
-- **File Location:** /home/user/gzhao/Thesis/Price/tokenDayDatas_1.csv
-- **File Type:** pd.DataFrame
-- **Column Names:** dailyTxns, dailyVolumeETH, dailyVolumeToken, dailyVolumeUSD, date, id, priceUSD, token.decimals, token.id, token.name, token.symbol
-
 ### token_price.csv
 
 - **File Name:** token_price.csv
