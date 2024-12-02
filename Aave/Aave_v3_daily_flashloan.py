@@ -22,21 +22,24 @@ timestamp_df['real_life_time'] = pd.to_datetime(timestamp_df['timestamp'], unit=
 timestamp_df['date'] = timestamp_df['real_life_time'].dt.date
 timestamp_df = timestamp_df[Aave_v3_start_block:]
 
+Aave_v3_flashloan_logs = Aave_v3_smart_contract.events.FlashLoan().get_logs(fromBlock=Aave_v3_start_block,toBlock=end_block + 1)
+
 for i in tqdm(range(Aave_v3_start_block, end_block + 1, step)):
-    Aave_v3_flashloan_logs = Aave_v3_smart_contract.events.FlashLoan().get_logs(fromBlock=i,toBlock=i+step-1)
+    current_to_block = min(i + step - 1, end_block+1)
+    Aave_v3_flashloan_logs = Aave_v3_smart_contract.events.FlashLoan().get_logs(fromBlock=i,toBlock=current_to_block)
     for j in range(len(Aave_v3_flashloan_logs)):
         info = {
-            'recipient': Aave_v3_flashloan_logs[j]['args']['target'],
-            'token': Aave_v3_flashloan_logs[j]['args']['asset'],
-            'amount': Aave_v3_flashloan_logs[j]['args']['amount'],
-            'fee': Aave_v3_flashloan_logs[j]['args']['premium'],
-            'tx_hash': Aave_v3_flashloan_logs[j]['transactionHash'].hex(),
-            'logIndex': Aave_v3_flashloan_logs[j]['logIndex'], 
-            'transactionIndex': Aave_v3_flashloan_logs[j]['transactionIndex'],
-            'block_number': Aave_v3_flashloan_logs[j]['blockNumber'],
-            'timestamp': timestamp_df['timestamp'][Aave_v3_flashloan_logs[j]['blockNumber']],
-            'date': timestamp_df['date'][Aave_v3_flashloan_logs[j]['blockNumber']]
-    }
+            'recipient': Aave_v3_flashloan_logs[i]['args']['target'],
+            'token': Aave_v3_flashloan_logs[i]['args']['asset'],
+            'amount': Aave_v3_flashloan_logs[i]['args']['amount'],
+            'fee': Aave_v3_flashloan_logs[i]['args']['premium'],
+            'tx_hash': Aave_v3_flashloan_logs[i]['transactionHash'].hex(),
+            'logIndex': Aave_v3_flashloan_logs[i]['logIndex'], 
+            'transactionIndex': Aave_v3_flashloan_logs[i]['transactionIndex'],
+            'block_number': Aave_v3_flashloan_logs[i]['blockNumber'],
+            'timestamp': timestamp_df['timestamp'][Aave_v3_flashloan_logs[i]['blockNumber']],
+            'date': timestamp_df['date'][Aave_v3_flashloan_logs[i]['blockNumber']]
+        }
         Aave_v3_flashloan_logs_simplified.append(info)
 
 Aave_v3_flashloan_logs_df = pd.DataFrame(Aave_v3_flashloan_logs_simplified).sort_values(by='timestamp').reset_index(drop=True)

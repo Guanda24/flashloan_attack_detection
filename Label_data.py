@@ -27,7 +27,11 @@ def check_is_token(address):
     return is_in_df
 
 
-merged_flashloan_filtered_df = merged_flashloan_df[merged_flashloan_df['highest_profit_in_usd'] > 100000]
+merged_flashloan_filtered_df = merged_flashloan_df[
+    (merged_flashloan_df['highest_profit_in_usd'] > 100000) |
+    (merged_flashloan_df['to_address_profit'] > 100000) |
+    (merged_flashloan_df['from_address_profit'] > 100000)
+]
 merged_flashloan_filtered_df = merged_flashloan_filtered_df[~merged_flashloan_filtered_df['highest_profit_address'].apply(check_is_token)].reset_index(drop=True)
 merged_flashloan_filtered_df = merged_flashloan_filtered_df[merged_flashloan_filtered_df['price_list'].apply(all_prices_not_nan)].reset_index(drop=True)
 attack_label_list = merged_flashloan_filtered_df['tx_hash'].tolist()

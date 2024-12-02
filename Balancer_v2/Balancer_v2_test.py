@@ -3,44 +3,52 @@ from web3.logs import DISCARD
 import pandas as pd
 import vaex
 from tqdm import tqdm
+from multiprocessing import Pool, Manager
 from decimal import Decimal, getcontext
+from filelock import FileLock
 import ABC_without_symbol as AB
 
 w3 = Web3(Web3.HTTPProvider("http://localhost:8547",request_kwargs={'timeout': 80}))#
 getcontext().prec = 50
 
-Aave_v2_flashloan_unique = pd.read_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Aave_v2_flashloan_unique.csv')
-token_price = pd.read_csv('/home/user/gzhao/Thesis/Price/token_price.csv')
+Balancer_v2_flashloan_unique = pd.read_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Balancer_v2_flashloan_unique.csv')
+token_price = pd.read_csv('/home/user/gzhao/Thesis/Price/token_price_filtered.csv')
 Uniswap_v2_sync = vaex.open('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/uniswap-v2-sync_drop_duplicates.hdf5')
 Uniswap_v3_swap = vaex.open('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/uniswap-v3-swap-drop-duplicates.hdf5')
 
-Aave_v2_ABC_error_index = []
+# Manager to share variables between processes
+manager = Manager()
+Balancer_v2_ABC_error_index = manager.list()
 
 # File Location
-Aave_v2_ABC_file = '/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Aave_v2_ABC.csv'
-Aave_v2_ABC_error_tx_cant_be_solved_file = '/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Aave_v2_ABC_error_tx_cant_be_solved.csv'
+Balancer_v2_ABC_file = '/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Balancer_v2_ABC.csv'
+Balancer_v2_ABC_error_tx_cant_be_solved_file = '/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Balancer_v2_ABC_error_tx_cant_be_solved.csv'
 
 try:
-    Aave_v2_ABC = pd.read_csv(Aave_v2_ABC_file)
+    Balancer_v2_ABC = pd.read_csv(Balancer_v2_ABC_file)
 except Exception as e:
-    print(f"File {Aave_v2_ABC_file} not found or cannot be loaded. Initializing a new one.")
-    Aave_v2_ABC_columns = [
+    print(f"File {Balancer_v2_ABC_file} not found or cannot be loaded. Initializing a new one.")
+    Balancer_v2_ABC_columns = [
         'tx_hash', 'date', 'block_number', 'transactionIndex', 'logIndex', 'from_address', 'to_address',
         'account_balance_change', 'ABC_in_usd', 'price_list', 'gas_fee', 'gas_fee_in_usd',
         'from_address_profit', 'to_address_profit', 'highest_profit_address', 'highest_profit_in_usd',
         'reserve_before_swap_list', 'reserve_after_swap_list', 'price_change_ratio_list',
         'highest_price_change_ratio', 'path_length', 'num_swap_events', 'flashloan_in_usd'
     ]
-    print(f"File {Aave_v2_ABC_file} not found or cannot be loaded. Initializing a new one.")
-    pd.DataFrame([], columns=Aave_v2_ABC_columns).to_csv(Aave_v2_ABC_file, index=False)
-    Aave_v2_ABC = pd.DataFrame(columns=Aave_v2_ABC_columns)
+    print(f"File {Balancer_v2_ABC_file} not found or cannot be loaded. Initializing a new one.")
+    pd.DataFrame([], columns=Balancer_v2_ABC_columns).to_csv(Balancer_v2_ABC_file, index=False)
+    Balancer_v2_ABC = pd.DataFrame(columns=Balancer_v2_ABC_columns)
 
 try:
-    Aave_v2_ABC_error_tx_cant_be_solved = pd.read_csv(Aave_v2_ABC_error_tx_cant_be_solved_file, header=None)[0].tolist()
+    Balancer_v2_ABC_error_tx_cant_be_solved = pd.read_csv(Balancer_v2_ABC_error_tx_cant_be_solved_file, header=None)[0].tolist()
 except Exception as e:
-    print(f"File {Aave_v2_ABC_error_tx_cant_be_solved_file} not found or cannot be loaded. Initializing a new one.")
-    pd.DataFrame([]).to_csv(Aave_v2_ABC_error_tx_cant_be_solved_file, index=False, header=False)
-    Aave_v2_ABC_error_tx_cant_be_solved = []
+    print(f"File {Balancer_v2_ABC_error_tx_cant_be_solved_file} not found or cannot be loaded. Initializing a new one.")
+    pd.DataFrame([]).to_csv(Balancer_v2_ABC_error_tx_cant_be_solved_file, index=False, header=False)
+    Balancer_v2_ABC_error_tx_cant_be_solved = []
+
+# File Lock Path
+Balancer_v2_ABC_lock_path = '/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Balancer_v2_ABC.lock'
+Balancer_v2_ABC_error_tx_cant_be_solved_lock_path = '/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Balancer_v2_ABC_error_tx_cant_be_solved.lock'
 
 # Default ABI    
 Uniswap_v2_pair_contract_abi = '[{"inputs":[],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"address","name":"spender","type":"address"},{"indexed":false,"internalType":"uint256","name":"value","type":"uint256"}],"name":"Approval","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"sender","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount0","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount1","type":"uint256"},{"indexed":true,"internalType":"address","name":"to","type":"address"}],"name":"Burn","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"sender","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount0","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount1","type":"uint256"}],"name":"Mint","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"sender","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount0In","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount1In","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount0Out","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount1Out","type":"uint256"},{"indexed":true,"internalType":"address","name":"to","type":"address"}],"name":"Swap","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint112","name":"reserve0","type":"uint112"},{"indexed":false,"internalType":"uint112","name":"reserve1","type":"uint112"}],"name":"Sync","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"from","type":"address"},{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":false,"internalType":"uint256","name":"value","type":"uint256"}],"name":"Transfer","type":"event"},{"constant":true,"inputs":[],"name":"DOMAIN_SEPARATOR","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"MINIMUM_LIQUIDITY","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"PERMIT_TYPEHASH","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"},{"internalType":"address","name":"","type":"address"}],"name":"allowance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"}],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"to","type":"address"}],"name":"burn","outputs":[{"internalType":"uint256","name":"amount0","type":"uint256"},{"internalType":"uint256","name":"amount1","type":"uint256"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"internalType":"uint8","name":"","type":"uint8"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"factory","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"getReserves","outputs":[{"internalType":"uint112","name":"_reserve0","type":"uint112"},{"internalType":"uint112","name":"_reserve1","type":"uint112"},{"internalType":"uint32","name":"_blockTimestampLast","type":"uint32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"_token0","type":"address"},{"internalType":"address","name":"_token1","type":"address"}],"name":"initialize","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"kLast","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"to","type":"address"}],"name":"mint","outputs":[{"internalType":"uint256","name":"liquidity","type":"uint256"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"name","outputs":[{"internalType":"string","name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"nonces","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"},{"internalType":"uint256","name":"deadline","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"permit","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"price0CumulativeLast","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"price1CumulativeLast","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"to","type":"address"}],"name":"skim","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"uint256","name":"amount0Out","type":"uint256"},{"internalType":"uint256","name":"amount1Out","type":"uint256"},{"internalType":"address","name":"to","type":"address"},{"internalType":"bytes","name":"data","type":"bytes"}],"name":"swap","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"internalType":"string","name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[],"name":"sync","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"token0","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"token1","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"}],"name":"transfer","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"}],"name":"transferFrom","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"}]'
@@ -219,26 +227,26 @@ def get_flashloan_in_usd(flashloan_token_address, flashloan_amount, date):
     return flashloan_in_usd
 
 def process_transaction_with_default_abi(i):
-    tx_hash = Aave_v2_flashloan_unique['tx_hash'][i]
+    tx_hash = Balancer_v2_flashloan_unique['tx_hash'][i]
     # Pass current iteration if current tx_hash is marked as error:
-    if tx_hash in Aave_v2_ABC_error_tx_cant_be_solved:
+    if tx_hash in Balancer_v2_ABC_error_tx_cant_be_solved:
         return
     
-    if tx_hash in Aave_v2_ABC['tx_hash'].values:
+    if tx_hash in Balancer_v2_ABC['tx_hash'].values:
         return
     
     try:    
-        block_number = Aave_v2_flashloan_unique['block_number'][i]
-        logIndex = Aave_v2_flashloan_unique['logIndex'][i]
-        transactionIndex = Aave_v2_flashloan_unique['transactionIndex'][i]
-        date = Aave_v2_flashloan_unique['date'][i]
+        block_number = Balancer_v2_flashloan_unique['block_number'][i]
+        logIndex = Balancer_v2_flashloan_unique['logIndex'][i]
+        transactionIndex = Balancer_v2_flashloan_unique['transactionIndex'][i]
+        date = Balancer_v2_flashloan_unique['date'][i]
         from_address = w3.tracing.trace_transaction(tx_hash)[0]['action']['from'].lower()
-        to_address = Aave_v2_flashloan_unique['recipient'][i].lower()
+        to_address = Balancer_v2_flashloan_unique['recipient'][i].lower()
 
 
         # flashloan in usd
-        flashloan_token_address = Aave_v2_flashloan_unique['token'][i].lower()
-        flashloan_amount = Aave_v2_flashloan_unique['amount'][i]
+        flashloan_token_address = Balancer_v2_flashloan_unique['token'][i].lower()
+        flashloan_amount = Balancer_v2_flashloan_unique['amount'][i]
         flashloan_in_usd = get_flashloan_in_usd(flashloan_token_address, flashloan_amount, date)
           
         # account balance change
@@ -262,7 +270,7 @@ def process_transaction_with_default_abi(i):
         # ABC_in_usd
         ABC_in_usd, price_list, gas_fee, gas_fee_in_usd, from_address_profit, to_address_profit, highest_profit_address, highest_profit_in_usd = get_ABC_in_usd(tx_hash, from_address, to_address, ABC_simplified, date)        
                 
-        # Aave_v2_ABC
+        # Balancer_v2_ABC
         entry = {'tx_hash': tx_hash , 'date': date, 'block_number': block_number, 'transactionIndex': transactionIndex, 'logIndex': logIndex,
                  'from_address': from_address, 'to_address': to_address, 
                  'account_balance_change': ABC, 'ABC_in_usd': ABC_in_usd, 'price_list': price_list,
@@ -274,31 +282,31 @@ def process_transaction_with_default_abi(i):
                  'path_length': path_length, 'num_swap_events': num_swap_events, 'flashloan_in_usd': flashloan_in_usd
                 }
         
-        pd.DataFrame([entry]).to_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Aave_v2_ABC.csv', mode='a', index=False, header=False)
-
+        with FileLock(Balancer_v2_ABC_lock_path):
+                    pd.DataFrame([entry]).to_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Balancer_v2_ABC.csv', mode='a', index=False, header=False)
     except Exception as e:
-        if tx_hash not in Aave_v2_ABC_error_tx_cant_be_solved:
-            Aave_v2_ABC_error_index.append(i)       
+        if tx_hash not in Balancer_v2_ABC_error_tx_cant_be_solved:
+            Balancer_v2_ABC_error_index.append(i)       
         print(f"An error occurred: {e} at index {i}")
         
 def process_error_transaction(i):
-    error_index = Aave_v2_ABC_error_index[i]
-    tx_hash = Aave_v2_flashloan_unique['tx_hash'][error_index]   
-    
-    if tx_hash in Aave_v2_ABC['tx_hash'].values:
+    if tx_hash in Balancer_v2_ABC['tx_hash'].values:
         return
     
-    try:  
-        block_number = Aave_v2_flashloan_unique['block_number'][error_index]
-        logIndex = Aave_v2_flashloan_unique['logIndex'][error_index]
-        transactionIndex = Aave_v2_flashloan_unique['transactionIndex'][error_index]
-        date = Aave_v2_flashloan_unique['date'][error_index]
+    try:
+        error_index = Balancer_v2_ABC_error_index[i]
+        tx_hash = Balancer_v2_flashloan_unique['tx_hash'][error_index]   
+        
+        block_number = Balancer_v2_flashloan_unique['block_number'][error_index]
+        logIndex = Balancer_v2_flashloan_unique['logIndex'][error_index]
+        transactionIndex = Balancer_v2_flashloan_unique['transactionIndex'][error_index]
+        date = Balancer_v2_flashloan_unique['date'][error_index]
         from_address = w3.tracing.trace_transaction(tx_hash)[0]['action']['from'].lower()
-        to_address = Aave_v2_flashloan_unique['recipient'][error_index].lower()
+        to_address = Balancer_v2_flashloan_unique['recipient'][error_index].lower()
 
         # flashloan in usd
-        flashloan_token_address = Aave_v2_flashloan_unique['token'][i].lower()
-        flashloan_amount = Aave_v2_flashloan_unique['amount'][i]
+        flashloan_token_address = Balancer_v2_flashloan_unique['token'][i].lower()
+        flashloan_amount = Balancer_v2_flashloan_unique['amount'][i]
         flashloan_in_usd = get_flashloan_in_usd(flashloan_token_address, flashloan_amount, date)
         
         # account_balance_change  
@@ -322,7 +330,7 @@ def process_error_transaction(i):
         # ABC_in_usd
         ABC_in_usd, price_list, gas_fee, gas_fee_in_usd, from_address_profit, to_address_profit, highest_profit_address, highest_profit_in_usd = get_ABC_in_usd(tx_hash, from_address, to_address, ABC_simplified, date)        
                 
-        # Aave_v2_ABC
+        # Balancer_v2_ABC
         entry = {'tx_hash': tx_hash , 'date': date, 'block_number': block_number, 'transactionIndex': transactionIndex, 'logIndex': logIndex,
                  'from_address': from_address, 'to_address': to_address, 
                  'account_balance_change': ABC, 'ABC_in_usd': ABC_in_usd, 'price_list': price_list,
@@ -334,18 +342,23 @@ def process_error_transaction(i):
                  'path_length': path_length, 'num_swap_events': num_swap_events, 'flashloan_in_usd': flashloan_in_usd
                 }
         
-        pd.DataFrame([entry]).to_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Aave_v2_ABC.csv', mode='a', index=False, header=False)
-
+        with FileLock(Balancer_v2_ABC_lock_path):
+                    pd.DataFrame([entry]).to_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Balancer_v2_ABC.csv', mode='a', index=False, header=False)
     except Exception as e:
-        if tx_hash not in Aave_v2_ABC_error_tx_cant_be_solved:
-            pd.DataFrame([[tx_hash]]).to_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Aave_v2_ABC_error_tx_cant_be_solved.csv', mode='a', index=False, header=False)
+        if tx_hash not in Balancer_v2_ABC_error_tx_cant_be_solved:
+            with FileLock(Balancer_v2_ABC_error_tx_cant_be_solved_lock_path):
+                    pd.DataFrame([[tx_hash]]).to_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Balancer_v2_ABC_error_tx_cant_be_solved.csv', mode='a', index=False, header=False)
         print(f"Error cannot be solved: {e} at {error_index}")
 
 # Process trasactions with default abi
-for i in tqdm(range(len(Aave_v2_flashloan_unique)), desc='Processing transactions with default abi'):
-    process_transaction_with_default_abi(i)  
+num_processes = 32
+with Pool(num_processes) as pool:
+    list(tqdm(pool.imap_unordered(process_transaction_with_default_abi, range(len(Balancer_v2_flashloan_unique))),
+              desc='Processing transactions with default abi', total=len(Balancer_v2_flashloan_unique)))   
     
 # Process the error transactions by getting abi from etherscan
-if Aave_v2_ABC_error_index:
-    for i in tqdm(range(len(Aave_v2_ABC_error_index)), desc='Processing error transactions'):
-        process_error_transaction(i)
+if Balancer_v2_ABC_error_index:
+    num_processes = 2
+    with Pool(num_processes) as pool:
+        list(tqdm(pool.imap_unordered(process_error_transaction, range(len(Balancer_v2_ABC_error_index))),
+                  desc='Processing transactions by getting abi from etherscan', total=len(Balancer_v2_ABC_error_index)))

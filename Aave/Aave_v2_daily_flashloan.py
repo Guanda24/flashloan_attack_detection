@@ -22,7 +22,8 @@ timestamp_df['date'] = timestamp_df['real_life_time'].dt.date
 timestamp_df = timestamp_df[Aave_v2_start_block:]
 
 for i in tqdm(range(Aave_v2_start_block, end_block + 1, step)):
-    Aave_v2_flashloan_logs = Aave_v2_smart_contract.events.FlashLoan().get_logs(fromBlock=i,toBlock=i+step-1)
+    current_to_block = min(i + step - 1, end_block+1)
+    Aave_v2_flashloan_logs = Aave_v2_smart_contract.events.FlashLoan().get_logs(fromBlock=i,toBlock=current_to_block)
     for j in range(len(Aave_v2_flashloan_logs)):
         info = {
             'recipient': Aave_v2_flashloan_logs[j]['args']['target'],
@@ -35,7 +36,7 @@ for i in tqdm(range(Aave_v2_start_block, end_block + 1, step)):
             'block_number': Aave_v2_flashloan_logs[j]['blockNumber'],
             'timestamp': timestamp_df['timestamp'][Aave_v2_flashloan_logs[j]['blockNumber']],
             'date': timestamp_df['date'][Aave_v2_flashloan_logs[j]['blockNumber']]
-    }
+        }
         Aave_v2_flashloan_logs_simplified.append(info)
 
 Aave_v2_flashloan_logs_df = pd.DataFrame(Aave_v2_flashloan_logs_simplified).sort_values(by='timestamp').reset_index(drop=True)

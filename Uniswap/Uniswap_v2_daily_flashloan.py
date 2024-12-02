@@ -57,7 +57,7 @@ def process_flash_logs(i):
             'transactionIndex': event[4],
             'logIndex': event[3],
             'sender': event[6],
-            'to': event[7],
+            'recipient': event[7],
             'pair_contract_address': event[5],
             'amount0_in': event[8],
             'amount1_in': event[9],

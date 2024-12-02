@@ -12,6 +12,7 @@ Balancer_v2_smart_contract=w3.eth.contract(address=Balancer_v2_contract_address,
  
 Balancer_v2_start_block = 12272146
 end_block = 21089068
+
 step = 50000
 Balancer_v2_flashloan_logs_simplified = []
 
@@ -20,8 +21,10 @@ timestamp_df['real_life_time'] = pd.to_datetime(timestamp_df['timestamp'], unit=
 timestamp_df['date'] = timestamp_df['real_life_time'].dt.date
 timestamp_df = timestamp_df[Balancer_v2_start_block:]
 
+
 for i in tqdm(range(Balancer_v2_start_block, end_block + 1, step)):
-    Balancer_v2_flashloan_logs = Balancer_v2_smart_contract.events.FlashLoan().get_logs(fromBlock=i,toBlock=i+step-1)
+    current_to_block = min(i + step - 1, end_block+1)
+    Balancer_v2_flashloan_logs = Balancer_v2_smart_contract.events.FlashLoan().get_logs(fromBlock=i,toBlock=current_to_block)
     for j in range(len(Balancer_v2_flashloan_logs)):
         info = {
             'recipient': Balancer_v2_flashloan_logs[j]['args']['recipient'],
@@ -34,7 +37,7 @@ for i in tqdm(range(Balancer_v2_start_block, end_block + 1, step)):
             'block_number': Balancer_v2_flashloan_logs[j]['blockNumber'],
             'timestamp': timestamp_df['timestamp'][Balancer_v2_flashloan_logs[j]['blockNumber']],
             'date': timestamp_df['date'][Balancer_v2_flashloan_logs[j]['blockNumber']]
-    }
+        }
         Balancer_v2_flashloan_logs_simplified.append(info)
 
 Balancer_v2_flashloan_logs_df = pd.DataFrame(Balancer_v2_flashloan_logs_simplified).sort_values(by='timestamp').reset_index(drop=True)

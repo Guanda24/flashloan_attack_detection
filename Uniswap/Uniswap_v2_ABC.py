@@ -3,45 +3,63 @@ from web3.logs import DISCARD
 import pandas as pd
 import vaex
 from tqdm import tqdm
-from multiprocessing import Pool, Manager
 from decimal import Decimal, getcontext
 import ABC_without_symbol as AB
 
 w3 = Web3(Web3.HTTPProvider("http://localhost:8547",request_kwargs={'timeout': 80}))#
 getcontext().prec = 50
 
-# Manager to share variables between processes
-manager = Manager()
-Uniswap_v2_ABC = manager.list()
-Uniswap_v2_ABC_error_index = manager.list()
-Uniswap_v2_price_cannot_get = manager.list()
-
 Uniswap_v2_flashloan_unique = pd.read_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Uniswap_v2_flashloan_unique.csv')
-token_price = pd.read_csv('/home/user/gzhao/Thesis/Price/token_price_filtered.csv')
+token_price = pd.read_csv('/home/user/gzhao/Thesis/Price/token_price.csv')
 Uniswap_v2_sync = vaex.open('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/uniswap-v2-sync_drop_duplicates.hdf5')
 
-try:
-    Uniswap_v2_ABC_error_tx_cant_be_solved = manager.list(pd.read_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Uniswap_v2_ABC_error_tx_cant_be_solved.csv', header=None)[0].tolist())
-except Exception as e:
-    Uniswap_v2_ABC_error_tx_cant_be_solved = manager.list()
+Uniswap_v2_ABC_error_index = []
 
-pair_contract_abi = '[{"inputs":[],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"address","name":"spender","type":"address"},{"indexed":false,"internalType":"uint256","name":"value","type":"uint256"}],"name":"Approval","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"sender","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount0","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount1","type":"uint256"},{"indexed":true,"internalType":"address","name":"to","type":"address"}],"name":"Burn","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"sender","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount0","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount1","type":"uint256"}],"name":"Mint","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"sender","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount0In","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount1In","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount0Out","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount1Out","type":"uint256"},{"indexed":true,"internalType":"address","name":"to","type":"address"}],"name":"Swap","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint112","name":"reserve0","type":"uint112"},{"indexed":false,"internalType":"uint112","name":"reserve1","type":"uint112"}],"name":"Sync","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"from","type":"address"},{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":false,"internalType":"uint256","name":"value","type":"uint256"}],"name":"Transfer","type":"event"},{"constant":true,"inputs":[],"name":"DOMAIN_SEPARATOR","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"MINIMUM_LIQUIDITY","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"PERMIT_TYPEHASH","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"},{"internalType":"address","name":"","type":"address"}],"name":"allowance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"}],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"to","type":"address"}],"name":"burn","outputs":[{"internalType":"uint256","name":"amount0","type":"uint256"},{"internalType":"uint256","name":"amount1","type":"uint256"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"internalType":"uint8","name":"","type":"uint8"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"factory","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"getReserves","outputs":[{"internalType":"uint112","name":"_reserve0","type":"uint112"},{"internalType":"uint112","name":"_reserve1","type":"uint112"},{"internalType":"uint32","name":"_blockTimestampLast","type":"uint32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"_token0","type":"address"},{"internalType":"address","name":"_token1","type":"address"}],"name":"initialize","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"kLast","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"to","type":"address"}],"name":"mint","outputs":[{"internalType":"uint256","name":"liquidity","type":"uint256"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"name","outputs":[{"internalType":"string","name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"nonces","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"},{"internalType":"uint256","name":"deadline","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"permit","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"price0CumulativeLast","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"price1CumulativeLast","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"to","type":"address"}],"name":"skim","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"uint256","name":"amount0Out","type":"uint256"},{"internalType":"uint256","name":"amount1Out","type":"uint256"},{"internalType":"address","name":"to","type":"address"},{"internalType":"bytes","name":"data","type":"bytes"}],"name":"swap","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"internalType":"string","name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[],"name":"sync","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"token0","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"token1","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"}],"name":"transfer","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"}],"name":"transferFrom","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"}]'
+# File Location
+Uniswap_v2_ABC_file = '/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Uniswap_v2_ABC.csv'
+Uniswap_v2_ABC_error_tx_cant_be_solved_file = '/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Uniswap_v2_ABC_error_tx_cant_be_solved.csv'
+
+try:
+    Uniswap_v2_ABC = pd.read_csv(Uniswap_v2_ABC_file)
+except Exception as e:
+    print(f"File {Uniswap_v2_ABC_file} not found or cannot be loaded. Initializing a new one.")
+    Uniswap_v2_ABC_columns = [
+        'tx_hash', 'date', 'block_number', 'transactionIndex', 'logIndex', 'from_address', 'to_address',
+        'account_balance_change', 'ABC_in_usd', 'price_list', 'gas_fee', 'gas_fee_in_usd',
+        'from_address_profit', 'to_address_profit', 'highest_profit_address', 'highest_profit_in_usd',
+        'reserve_before_swap_list', 'reserve_after_swap_list', 'price_change_ratio_list',
+        'highest_price_change_ratio', 'path_length', 'num_swap_events', 'flashloan_in_usd'
+    ]
+    print(f"File {Uniswap_v2_ABC_file} not found or cannot be loaded. Initializing a new one.")
+    pd.DataFrame([], columns=Uniswap_v2_ABC_columns).to_csv(Uniswap_v2_ABC_file, index=False)
+    Uniswap_v2_ABC = pd.DataFrame(columns=Uniswap_v2_ABC_columns)
+
+try:
+    Uniswap_v2_ABC_error_tx_cant_be_solved = pd.read_csv(Uniswap_v2_ABC_error_tx_cant_be_solved_file, header=None)[0].tolist()
+except Exception as e:
+    print(f"File {Uniswap_v2_ABC_error_tx_cant_be_solved_file} not found or cannot be loaded. Initializing a new one.")
+    pd.DataFrame([]).to_csv(Uniswap_v2_ABC_error_tx_cant_be_solved_file, index=False, header=False)
+    Uniswap_v2_ABC_error_tx_cant_be_solved = []
+
+# Default ABI    
+Uniswap_v2_pair_contract_abi = '[{"inputs":[],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"address","name":"spender","type":"address"},{"indexed":false,"internalType":"uint256","name":"value","type":"uint256"}],"name":"Approval","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"sender","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount0","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount1","type":"uint256"},{"indexed":true,"internalType":"address","name":"to","type":"address"}],"name":"Burn","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"sender","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount0","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount1","type":"uint256"}],"name":"Mint","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"sender","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount0In","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount1In","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount0Out","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount1Out","type":"uint256"},{"indexed":true,"internalType":"address","name":"to","type":"address"}],"name":"Swap","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint112","name":"reserve0","type":"uint112"},{"indexed":false,"internalType":"uint112","name":"reserve1","type":"uint112"}],"name":"Sync","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"from","type":"address"},{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":false,"internalType":"uint256","name":"value","type":"uint256"}],"name":"Transfer","type":"event"},{"constant":true,"inputs":[],"name":"DOMAIN_SEPARATOR","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"MINIMUM_LIQUIDITY","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"PERMIT_TYPEHASH","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"},{"internalType":"address","name":"","type":"address"}],"name":"allowance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"}],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"to","type":"address"}],"name":"burn","outputs":[{"internalType":"uint256","name":"amount0","type":"uint256"},{"internalType":"uint256","name":"amount1","type":"uint256"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"internalType":"uint8","name":"","type":"uint8"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"factory","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"getReserves","outputs":[{"internalType":"uint112","name":"_reserve0","type":"uint112"},{"internalType":"uint112","name":"_reserve1","type":"uint112"},{"internalType":"uint32","name":"_blockTimestampLast","type":"uint32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"_token0","type":"address"},{"internalType":"address","name":"_token1","type":"address"}],"name":"initialize","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"kLast","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"to","type":"address"}],"name":"mint","outputs":[{"internalType":"uint256","name":"liquidity","type":"uint256"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"name","outputs":[{"internalType":"string","name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"nonces","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"},{"internalType":"uint256","name":"deadline","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"permit","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"price0CumulativeLast","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"price1CumulativeLast","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"to","type":"address"}],"name":"skim","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"uint256","name":"amount0Out","type":"uint256"},{"internalType":"uint256","name":"amount1Out","type":"uint256"},{"internalType":"address","name":"to","type":"address"},{"internalType":"bytes","name":"data","type":"bytes"}],"name":"swap","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"internalType":"string","name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[],"name":"sync","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"token0","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"token1","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"}],"name":"transfer","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"}],"name":"transferFrom","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"}]'
 
 def get_price_change_ratio(tx_hash):
-    tx_receipt = w3.eth.get_transaction_receipt(tx_hash)    
+    tx_receipt = w3.eth.get_transaction_receipt(tx_hash)
     
     reserve_before_swap_list = []
     reserve_after_swap_list = []
     price_change_ratio_list =[]
     
-    pair_contract = w3.eth.contract(abi=pair_contract_abi) 
-    swap_events = pair_contract.events.Swap().process_receipt(tx_receipt,DISCARD)
-    swap_events = [dict(i) for i in swap_events]
-    num_swap_events = len(swap_events)
-    logIndex_list = [event['logIndex'] for event in swap_events]
-    address_list = [event['address'].lower() for event in swap_events]
-    
-    for i in range(num_swap_events):
+    # Uniswap V2 swap events
+    Uniswap_v2_pair_contract = w3.eth.contract(abi=Uniswap_v2_pair_contract_abi) 
+    Uniswap_v2_swap_events = Uniswap_v2_pair_contract.events.Swap().process_receipt(tx_receipt,DISCARD)
+    Uniswap_v2_swap_events = [dict(i) for i in Uniswap_v2_swap_events]
+    Uniswap_v2_num_swap_events = len(Uniswap_v2_swap_events)
+    Uniswap_v2_logIndex_list = [event['logIndex'] for event in Uniswap_v2_swap_events]
+    Uniswap_v2_address_list = [event['address'].lower() for event in Uniswap_v2_swap_events]
+ 
+    for i in range(Uniswap_v2_num_swap_events):
         reserve0_before_swap = Decimal('NaN')
         reserve1_before_swap = Decimal('NaN')
         price_before_swap = Decimal('NaN') 
@@ -49,12 +67,12 @@ def get_price_change_ratio(tx_hash):
         reserve1_after_swap = Decimal('NaN')
         price_after_swap = Decimal('NaN')
         price_change_ratio = Decimal('NaN')
-        sync_df = Uniswap_v2_sync[Uniswap_v2_sync['pair_contract_address'] == address_list[i]]
+        sync_df = Uniswap_v2_sync[Uniswap_v2_sync['pair_contract_address'] == Uniswap_v2_address_list[i]]
         if sync_df:
             sync_df = sync_df.sort(by=['block_number', 'tx_index', 'log_index'], ascending=[True, True, True]).to_pandas_df()
-            if not sync_df[(sync_df['tx_hash'] == tx_hash ) & (sync_df['log_index'] == logIndex_list[i] - 1)].empty:
+            if not sync_df[(sync_df['tx_hash'] == tx_hash ) & (sync_df['log_index'] == Uniswap_v2_logIndex_list[i] - 1)].empty:
                 # reserve after swap
-                index = sync_df[(sync_df['tx_hash'] == tx_hash ) & (sync_df['log_index'] == logIndex_list[i] - 1)].index[0]
+                index = sync_df[(sync_df['tx_hash'] == tx_hash ) & (sync_df['log_index'] == Uniswap_v2_logIndex_list[i] - 1)].index[0]
                 reserve0_after_swap = Decimal(sync_df['reserve0'][index])
                 reserve1_after_swap = Decimal(sync_df['reserve1'][index])
                 price_after_swap = reserve0_after_swap / reserve1_after_swap
@@ -68,18 +86,20 @@ def get_price_change_ratio(tx_hash):
                     reserve0_before_swap = Decimal(sync_df['reserve0'][index])
                     reserve1_before_swap = Decimal(sync_df['reserve1'][index])
                     price_before_swap = reserve0_before_swap / reserve1_before_swap
-                # price change ratio
+                # reserve ratio
                 price_change_ratio = (price_after_swap - price_before_swap) / price_before_swap
         # Append result to list    
         reserve_before_swap_list.append({'reserve0': reserve0_before_swap, 'reserve1': reserve1_before_swap, 'price': price_before_swap})
         reserve_after_swap_list.append({'reserve0': reserve0_after_swap, 'reserve1': reserve1_after_swap, 'price': price_after_swap})
         price_change_ratio_list.append(price_change_ratio)
-    
+              
     filtered_price_change_ratio_list = [x for x in price_change_ratio_list if x.is_finite()]
     if not filtered_price_change_ratio_list:
         highest_price_change_ratio = Decimal('NaN')
     else:
         highest_price_change_ratio = max(abs(x) for x in filtered_price_change_ratio_list)
+        
+    num_swap_events = Uniswap_v2_num_swap_events
     return num_swap_events, reserve_before_swap_list, reserve_after_swap_list, price_change_ratio_list, highest_price_change_ratio        
             
 def get_ABC_in_usd(tx_hash, from_address, to_address, ABC_simplified, date):
@@ -97,7 +117,6 @@ def get_ABC_in_usd(tx_hash, from_address, to_address, ABC_simplified, date):
     gas_fee_in_usd = gas_fee * ETH_price
     
     for i in range(len(token_address_list)):
-        
         # iterate through each column to get price of all tokens
         token_address = token_address_list[i]
         if not token_price[(token_price['token.id'] == token_address) & (token_price['date'] == date)].empty:
@@ -105,9 +124,7 @@ def get_ABC_in_usd(tx_hash, from_address, to_address, ABC_simplified, date):
             price = Decimal(token_price['priceUSD'][index])
         else:
             price = Decimal('NaN')
-            if token_address not in Uniswap_v2_price_cannot_get:
-                Uniswap_v2_price_cannot_get.append(token_address)
-
+            
         price_list.append({'token_address': token_address, 'price': price})
         
         # iterate through each row to calculate the balance change in usd
@@ -143,24 +160,23 @@ def get_ABC_in_usd(tx_hash, from_address, to_address, ABC_simplified, date):
         
     return ABC_in_usd, price_list, gas_fee, gas_fee_in_usd, from_address_profit, to_address_profit, highest_profit_address, highest_profit_in_usd
 
-
 def get_flashloan_in_usd(flashloan_token_address, flashloan_amount, date):
     if not token_price[(token_price['token.id'] == flashloan_token_address) & (token_price['date'] == date)].empty:
         index = token_price[(token_price['token.id'] == flashloan_token_address) & (token_price['date'] == date)].index[0]
         price = Decimal(token_price['priceUSD'][index])
     else:
         price = Decimal('NaN')
-        if flashloan_token_address not in Uniswap_v2_price_cannot_get:
-            Uniswap_v2_price_cannot_get.append(flashloan_token_address)
     
     flashloan_in_usd = price * Decimal(flashloan_amount)
     return flashloan_in_usd
-    
 
 def process_transaction_with_default_abi(i):
     tx_hash = Uniswap_v2_flashloan_unique['tx_hash'][i]
     # Pass current iteration if current tx_hash is marked as error:
     if tx_hash in Uniswap_v2_ABC_error_tx_cant_be_solved:
+        return
+    
+    if tx_hash in Uniswap_v2_ABC['tx_hash'].values:
         return
     
     try:    
@@ -169,7 +185,8 @@ def process_transaction_with_default_abi(i):
         transactionIndex = Uniswap_v2_flashloan_unique['transactionIndex'][i]
         date = Uniswap_v2_flashloan_unique['date'][i]
         from_address = w3.tracing.trace_transaction(tx_hash)[0]['action']['from'].lower()
-        to_address = Uniswap_v2_flashloan_unique['sender'][i].lower()
+        to_address = Uniswap_v2_flashloan_unique['recipient'][i].lower()
+
 
         # flashloan in usd
         flashloan_token_address = Uniswap_v2_flashloan_unique['token'][i].lower()
@@ -208,23 +225,28 @@ def process_transaction_with_default_abi(i):
                  'price_change_ratio_list': price_change_ratio_list, 'highest_price_change_ratio': highest_price_change_ratio,
                  'path_length': path_length, 'num_swap_events': num_swap_events, 'flashloan_in_usd': flashloan_in_usd
                 }
-        Uniswap_v2_ABC.append(entry)
+        
+        pd.DataFrame([entry]).to_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Uniswap_v2_ABC.csv', mode='a', index=False, header=False)
+
     except Exception as e:
         if tx_hash not in Uniswap_v2_ABC_error_tx_cant_be_solved:
             Uniswap_v2_ABC_error_index.append(i)       
         print(f"An error occurred: {e} at index {i}")
         
 def process_error_transaction(i):
+    error_index = Uniswap_v2_ABC_error_index[i]
+    tx_hash = Uniswap_v2_flashloan_unique['tx_hash'][error_index]   
+    
+    if tx_hash in Uniswap_v2_ABC['tx_hash'].values:
+        return
+    
     try:
-        error_index = Uniswap_v2_ABC_error_index[i]
-        tx_hash = Uniswap_v2_flashloan_unique['tx_hash'][error_index]   
-        
         block_number = Uniswap_v2_flashloan_unique['block_number'][error_index]
         logIndex = Uniswap_v2_flashloan_unique['logIndex'][error_index]
         transactionIndex = Uniswap_v2_flashloan_unique['transactionIndex'][error_index]
         date = Uniswap_v2_flashloan_unique['date'][error_index]
         from_address = w3.tracing.trace_transaction(tx_hash)[0]['action']['from'].lower()
-        to_address = Uniswap_v2_flashloan_unique['sender'][error_index].lower()
+        to_address = Uniswap_v2_flashloan_unique['recipient'][error_index].lower()
 
         # flashloan in usd
         flashloan_token_address = Uniswap_v2_flashloan_unique['token'][i].lower()
@@ -263,36 +285,19 @@ def process_error_transaction(i):
                  'price_change_ratio_list': price_change_ratio_list, 'highest_price_change_ratio': highest_price_change_ratio,
                  'path_length': path_length, 'num_swap_events': num_swap_events, 'flashloan_in_usd': flashloan_in_usd
                 }
-        Uniswap_v2_ABC.append(entry)
+        
+        pd.DataFrame([entry]).to_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Uniswap_v2_ABC.csv', mode='a', index=False, header=False)
+
     except Exception as e:
         if tx_hash not in Uniswap_v2_ABC_error_tx_cant_be_solved:
-            Uniswap_v2_ABC_error_tx_cant_be_solved.append(tx_hash)
+            pd.DataFrame([[tx_hash]]).to_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Uniswap_v2_ABC_error_tx_cant_be_solved.csv', mode='a', index=False, header=False)
         print(f"Error cannot be solved: {e} at {error_index}")
 
 # Process trasactions with default abi
-num_processes = 64
-with Pool(num_processes) as pool:
-    list(tqdm(pool.imap_unordered(process_transaction_with_default_abi, range(len(Uniswap_v2_flashloan_unique))),
-              desc='Processing transactions with default abi', total=len(Uniswap_v2_flashloan_unique)))   
+for i in tqdm(range(len(Uniswap_v2_flashloan_unique)), desc='Processing transactions with default abi'):
+    process_transaction_with_default_abi(i)  
     
 # Process the error transactions by getting abi from etherscan
 if Uniswap_v2_ABC_error_index:
-    num_processes = 2
-    with Pool(num_processes) as pool:
-        list(tqdm(pool.imap_unordered(process_error_transaction, range(len(Uniswap_v2_ABC_error_index))),
-                  desc='Processing transactions by getting abi from etherscan', total=len(Uniswap_v2_ABC_error_index)))
-
-print('initialise')
-Uniswap_v2_ABC = list(Uniswap_v2_ABC)
-Uniswap_v2_ABC_error_tx_cant_be_solved = list(Uniswap_v2_ABC_error_tx_cant_be_solved)
-Uniswap_v2_price_cannot_get = list(Uniswap_v2_price_cannot_get)
-
-print('to df')
-Uniswap_v2_ABC_df = pd.DataFrame(Uniswap_v2_ABC)
-Uniswap_v2_ABC_error_tx_cant_be_solved_df = pd.DataFrame(Uniswap_v2_ABC_error_tx_cant_be_solved)
-Uniswap_v2_price_cannot_get_df = pd.DataFrame(Uniswap_v2_price_cannot_get)
-
-print('to_csv')
-Uniswap_v2_ABC_df.to_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Uniswap_v2_ABC.csv', index=False)
-Uniswap_v2_ABC_error_tx_cant_be_solved_df.to_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Uniswap_v2_ABC_error_tx_cant_be_solved.csv', index=False, header = False)
-Uniswap_v2_price_cannot_get_df.to_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Uniswap_v2_price_cannot_get.csv', index=False, header = False)
+    for i in tqdm(range(len(Uniswap_v2_ABC_error_index)), desc='Processing error transactions'):
+        process_error_transaction(i)

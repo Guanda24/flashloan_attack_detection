@@ -3,7 +3,9 @@ from web3.logs import DISCARD
 import pandas as pd
 import vaex
 from tqdm import tqdm
+from multiprocessing import Pool, Manager
 from decimal import Decimal, getcontext
+from filelock import FileLock
 import ABC_without_symbol as AB
 
 w3 = Web3(Web3.HTTPProvider("http://localhost:8547",request_kwargs={'timeout': 80}))#
@@ -14,7 +16,9 @@ token_price = pd.read_csv('/home/user/gzhao/Thesis/Price/token_price.csv')
 Uniswap_v2_sync = vaex.open('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/uniswap-v2-sync_drop_duplicates.hdf5')
 Uniswap_v3_swap = vaex.open('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/uniswap-v3-swap-drop-duplicates.hdf5')
 
-Aave_v2_ABC_error_index = []
+# Manager to share variables between processes
+manager = Manager()
+Aave_v2_ABC_error_index = manager.list()
 
 # File Location
 Aave_v2_ABC_file = '/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Aave_v2_ABC.csv'
@@ -41,6 +45,10 @@ except Exception as e:
     print(f"File {Aave_v2_ABC_error_tx_cant_be_solved_file} not found or cannot be loaded. Initializing a new one.")
     pd.DataFrame([]).to_csv(Aave_v2_ABC_error_tx_cant_be_solved_file, index=False, header=False)
     Aave_v2_ABC_error_tx_cant_be_solved = []
+
+# File Lock Path
+Aave_v2_ABC_lock_path = '/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Aave_v2_ABC.lock'
+Aave_v2_ABC_error_tx_cant_be_solved_lock_path = '/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Aave_v2_ABC_error_tx_cant_be_solved.lock'
 
 # Default ABI    
 Uniswap_v2_pair_contract_abi = '[{"inputs":[],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"address","name":"spender","type":"address"},{"indexed":false,"internalType":"uint256","name":"value","type":"uint256"}],"name":"Approval","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"sender","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount0","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount1","type":"uint256"},{"indexed":true,"internalType":"address","name":"to","type":"address"}],"name":"Burn","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"sender","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount0","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount1","type":"uint256"}],"name":"Mint","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"sender","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount0In","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount1In","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount0Out","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"amount1Out","type":"uint256"},{"indexed":true,"internalType":"address","name":"to","type":"address"}],"name":"Swap","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint112","name":"reserve0","type":"uint112"},{"indexed":false,"internalType":"uint112","name":"reserve1","type":"uint112"}],"name":"Sync","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"from","type":"address"},{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":false,"internalType":"uint256","name":"value","type":"uint256"}],"name":"Transfer","type":"event"},{"constant":true,"inputs":[],"name":"DOMAIN_SEPARATOR","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"MINIMUM_LIQUIDITY","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"PERMIT_TYPEHASH","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"},{"internalType":"address","name":"","type":"address"}],"name":"allowance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"}],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"to","type":"address"}],"name":"burn","outputs":[{"internalType":"uint256","name":"amount0","type":"uint256"},{"internalType":"uint256","name":"amount1","type":"uint256"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"internalType":"uint8","name":"","type":"uint8"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"factory","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"getReserves","outputs":[{"internalType":"uint112","name":"_reserve0","type":"uint112"},{"internalType":"uint112","name":"_reserve1","type":"uint112"},{"internalType":"uint32","name":"_blockTimestampLast","type":"uint32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"_token0","type":"address"},{"internalType":"address","name":"_token1","type":"address"}],"name":"initialize","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"kLast","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"to","type":"address"}],"name":"mint","outputs":[{"internalType":"uint256","name":"liquidity","type":"uint256"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"name","outputs":[{"internalType":"string","name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"nonces","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"},{"internalType":"uint256","name":"deadline","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"permit","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"price0CumulativeLast","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"price1CumulativeLast","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"to","type":"address"}],"name":"skim","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"uint256","name":"amount0Out","type":"uint256"},{"internalType":"uint256","name":"amount1Out","type":"uint256"},{"internalType":"address","name":"to","type":"address"},{"internalType":"bytes","name":"data","type":"bytes"}],"name":"swap","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"internalType":"string","name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[],"name":"sync","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"token0","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"token1","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"}],"name":"transfer","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"}],"name":"transferFrom","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"}]'
@@ -274,8 +282,8 @@ def process_transaction_with_default_abi(i):
                  'path_length': path_length, 'num_swap_events': num_swap_events, 'flashloan_in_usd': flashloan_in_usd
                 }
         
-        pd.DataFrame([entry]).to_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Aave_v2_ABC.csv', mode='a', index=False, header=False)
-
+        with FileLock(Aave_v2_ABC_lock_path):
+            pd.DataFrame([entry]).to_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Aave_v2_ABC.csv', mode='a', index=False, header=False)
     except Exception as e:
         if tx_hash not in Aave_v2_ABC_error_tx_cant_be_solved:
             Aave_v2_ABC_error_index.append(i)       
@@ -284,11 +292,11 @@ def process_transaction_with_default_abi(i):
 def process_error_transaction(i):
     error_index = Aave_v2_ABC_error_index[i]
     tx_hash = Aave_v2_flashloan_unique['tx_hash'][error_index]   
-    
+
     if tx_hash in Aave_v2_ABC['tx_hash'].values:
         return
     
-    try:  
+    try:
         block_number = Aave_v2_flashloan_unique['block_number'][error_index]
         logIndex = Aave_v2_flashloan_unique['logIndex'][error_index]
         transactionIndex = Aave_v2_flashloan_unique['transactionIndex'][error_index]
@@ -334,18 +342,23 @@ def process_error_transaction(i):
                  'path_length': path_length, 'num_swap_events': num_swap_events, 'flashloan_in_usd': flashloan_in_usd
                 }
         
-        pd.DataFrame([entry]).to_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Aave_v2_ABC.csv', mode='a', index=False, header=False)
-
+        with FileLock(Aave_v2_ABC_lock_path):
+            pd.DataFrame([entry]).to_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Aave_v2_ABC.csv', mode='a', index=False, header=False)
     except Exception as e:
         if tx_hash not in Aave_v2_ABC_error_tx_cant_be_solved:
-            pd.DataFrame([[tx_hash]]).to_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Aave_v2_ABC_error_tx_cant_be_solved.csv', mode='a', index=False, header=False)
+            with FileLock(Aave_v2_ABC_error_tx_cant_be_solved_lock_path):
+                pd.DataFrame([[tx_hash]]).to_csv('/local/scratch/exported/MP_Defi_txs_TY_23/guanda/Aave_v2_ABC_error_tx_cant_be_solved.csv', mode='a', index=False, header=False)
         print(f"Error cannot be solved: {e} at {error_index}")
 
 # Process trasactions with default abi
-for i in tqdm(range(len(Aave_v2_flashloan_unique)), desc='Processing transactions with default abi'):
-    process_transaction_with_default_abi(i)  
+num_processes = 32
+with Pool(num_processes) as pool:
+    list(tqdm(pool.imap_unordered(process_transaction_with_default_abi, range(len(Aave_v2_flashloan_unique))),
+              desc='Processing transactions with default abi', total=len(Aave_v2_flashloan_unique)))   
     
 # Process the error transactions by getting abi from etherscan
 if Aave_v2_ABC_error_index:
-    for i in tqdm(range(len(Aave_v2_ABC_error_index)), desc='Processing error transactions'):
-        process_error_transaction(i)
+    num_processes = 2
+    with Pool(num_processes) as pool:
+        list(tqdm(pool.imap_unordered(process_error_transaction, range(len(Aave_v2_ABC_error_index))),
+                  desc='Processing transactions by getting abi from etherscan', total=len(Aave_v2_ABC_error_index)))
