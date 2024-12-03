@@ -38,13 +38,6 @@ This section provides a comprehensive overview of the project's data files. Each
 - **File Type:** pd.DataFrame
 - **Column Names:** dailyTxns, dailyVolumeETH, dailyVolumeToken, dailyVolumeUSD, date, id, priceUSD, token.decimals, token.id, token.name, token.symbol
 
-### token_price_filtered.csv
-
-- **File Name:** token_price_filtered.csv
-- **File Location:** /home/user/gzhao/Thesis/Price/token_price_filtered.csv
-- **File Type:** pd.DataFrame
-- **Column Names:** dailyTxns, dailyVolumeETH, dailyVolumeToken, dailyVolumeUSD, date, id, priceUSD, token.decimals, token.id, token.name, token.symbol
-
 ## Uniswap_v2
 
 ### uni-v2-sender_equal_to_21089068.hdf5
